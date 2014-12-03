@@ -47,11 +47,10 @@ func (d *Dialer) sendCONNECT(network, addr string, conn net.Conn) error {
 		return fmt.Errorf("%s connections are not supported, only tcp is supported", network)
 	}
 
-	req, err := http.NewRequest(CONNECT, addr, nil)
+	req, err := buildCONNECTRequest(addr)
 	if err != nil {
 		return fmt.Errorf("Unable to construct CONNECT request: %s", err)
 	}
-	req.Host = addr
 	err = req.Write(conn)
 	if err != nil {
 		return fmt.Errorf("Unable to write CONNECT request: %s", err)
@@ -81,4 +80,13 @@ func checkCONNECTResponse(r *bufio.Reader, req *http.Request) error {
 		return fmt.Errorf("Bad status code on CONNECT response: %d", resp.StatusCode)
 	}
 	return nil
+}
+
+func buildCONNECTRequest(addr string) (*http.Request, error) {
+	req, err := http.NewRequest(CONNECT, addr, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Host = addr
+	return req, nil
 }
