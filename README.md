@@ -6,4 +6,4 @@ To install:
 
 For docs:
 
-`godoc github.com/getlantern/chained`
+`godoc github.com/getlantern/chained` 
