@@ -9,11 +9,11 @@ import (
 	"strings"
 )
 
-// Client is an implementation of proxy.Dialer that proxies traffic via an
+// Dialer is an implementation of proxy.Dialer that proxies traffic via an
 // upstream server proxy.  Its Dial function uses DialServer to dial the server
 // proxy and then issues a CONNECT request to instruct the server to connect to
 // the destination at the specified network and addr.
-type Client struct {
+type Dialer struct {
 	// DialServer: function that dials the upstream server proxy
 	DialServer func() (net.Conn, error)
 
@@ -24,12 +24,12 @@ type Client struct {
 }
 
 // Dial implements the method from proxy.Dialer
-func (client *Client) Dial(network, addr string) (net.Conn, error) {
-	conn, err := client.DialServer()
+func (d *Dialer) Dial(network, addr string) (net.Conn, error) {
+	conn, err := d.DialServer()
 	if err != nil {
 		return nil, fmt.Errorf("Unable to dial server at %s", err)
 	}
-	err = client.sendCONNECT(network, addr, conn)
+	err = d.sendCONNECT(network, addr, conn)
 	if err != nil {
 		conn.Close()
 		return nil, err
@@ -38,11 +38,11 @@ func (client *Client) Dial(network, addr string) (net.Conn, error) {
 }
 
 // Close implements the method from proxy.Dialer
-func (client *Client) Close() error {
+func (d *Dialer) Close() error {
 	return nil
 }
 
-func (client *Client) sendCONNECT(network, addr string, conn net.Conn) error {
+func (d *Dialer) sendCONNECT(network, addr string, conn net.Conn) error {
 	if !strings.Contains(network, "tcp") {
 		return fmt.Errorf("%s connections are not supported, only tcp is supported", network)
 	}
@@ -58,7 +58,7 @@ func (client *Client) sendCONNECT(network, addr string, conn net.Conn) error {
 	}
 
 	r := bufio.NewReader(conn)
-	if client.Pipelined {
+	if d.Pipelined {
 		go func() {
 			err := checkCONNECTResponse(r, req)
 			if err != nil {
