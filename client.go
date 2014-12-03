@@ -9,30 +9,40 @@ import (
 	"strings"
 )
 
-// Client creates a dialer function for a client proxy, using the given
-// dialServer function to dial the server proxy. The dialer function issues a
-// CONNECT request to instruct the server to connect to the specified network,
-// addr.
-//
-// If pipelined is true, the dialer function will return before receiving a
-// response to the CONNECT request. If pipelined is false, the dialer function
-// will wait for and check the response to the CONNECT request before returning.
-func Client(pipelined bool, dialServer func() (net.Conn, error)) func(network, addr string) (net.Conn, error) {
-	return func(network, addr string) (net.Conn, error) {
-		conn, err := dialServer()
-		if err != nil {
-			return nil, fmt.Errorf("Unable to dial server at %s", err)
-		}
-		err = sendCONNECT(network, addr, conn, pipelined)
-		if err != nil {
-			conn.Close()
-			return nil, err
-		}
-		return conn, nil
-	}
+// Client is an implementation of proxy.Dialer that proxies traffic via an
+// upstream server proxy.  Its Dial function uses DialServer to dial the server
+// proxy and then issues a CONNECT request to instruct the server to connect to
+// the destination at the specified network and addr.
+type Client struct {
+	// DialServer: function that dials the upstream server proxy
+	DialServer func() (net.Conn, error)
+
+	// Pipelined: if true, Dial() will return before receiving a response to the
+	// CONNECT request. If false, the dialer function will wait for and check
+	// the response to the CONNECT request before returning.
+	Pipelined bool
 }
 
-func sendCONNECT(network, addr string, conn net.Conn, pipelined bool) error {
+// Dial implements the method from proxy.Dialer
+func (client *Client) Dial(network, addr string) (net.Conn, error) {
+	conn, err := client.DialServer()
+	if err != nil {
+		return nil, fmt.Errorf("Unable to dial server at %s", err)
+	}
+	err = client.sendCONNECT(network, addr, conn)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+	return conn, nil
+}
+
+// Close implements the method from proxy.Dialer
+func (client *Client) Close() error {
+	return nil
+}
+
+func (client *Client) sendCONNECT(network, addr string, conn net.Conn) error {
 	if !strings.Contains(network, "tcp") {
 		return fmt.Errorf("%s connections are not supported, only tcp is supported", network)
 	}
@@ -48,7 +58,7 @@ func sendCONNECT(network, addr string, conn net.Conn, pipelined bool) error {
 	}
 
 	r := bufio.NewReader(conn)
-	if pipelined {
+	if client.Pipelined {
 		go func() {
 			err := checkCONNECTResponse(r, req)
 			if err != nil {

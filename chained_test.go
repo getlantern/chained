@@ -4,7 +4,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/getlantern/proxytest"
+	"github.com/getlantern/proxy"
 )
 
 func TestSuccessNotPipelined(t *testing.T) {
@@ -16,27 +16,27 @@ func TestSuccessPipelined(t *testing.T) {
 }
 
 func doTest(t *testing.T, pipelined bool) {
-	// Set up listener for server proxy
-	pl, err := net.Listen("tcp", "localhost:0")
+	l, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		t.Fatalf("Unable to listen: %s", err)
 	}
 
-	// upstream proxy server
 	s := &Server{
 		Dial: net.Dial,
 	}
 	go func() {
-		err := s.Serve(pl)
+		err := s.Serve(l)
 		if err != nil {
 			t.Fatalf("Unable to serve: %s", err)
 		}
 	}()
 
-	// proxy client
-	dial := Client(false, func() (net.Conn, error) {
-		return net.Dial(pl.Addr().Network(), pl.Addr().String())
-	})
+	dialer := &Client{
+		DialServer: func() (net.Conn, error) {
+			return net.Dial(l.Addr().Network(), l.Addr().String())
+		},
+		Pipelined: false,
+	}
 
-	proxytest.Go(t, dial)
+	proxy.Test(t, dialer)
 }
