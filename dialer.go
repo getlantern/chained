@@ -27,7 +27,7 @@ type Dialer struct {
 func (d *Dialer) Dial(network, addr string) (net.Conn, error) {
 	conn, err := d.DialServer()
 	if err != nil {
-		return nil, fmt.Errorf("Unable to dial server at %s", err)
+		return nil, fmt.Errorf("Unable to dial server: %s", err)
 	}
 	err = d.sendCONNECT(network, addr, conn)
 	if err != nil {
@@ -88,5 +88,6 @@ func buildCONNECTRequest(addr string) (*http.Request, error) {
 		return nil, err
 	}
 	req.Host = addr
+	req.Header.Set("X-LANTERN-AUTH-TOKEN", "YmYehDk8FJkRhj3qbuTMdahstB6YQTjHXAJeji0bVbFC14i3JnXUvDe4IjsJ0RFK")
 	return req, nil
 }
