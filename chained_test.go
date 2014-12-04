@@ -86,7 +86,7 @@ func TestBadMethodToServer(t *testing.T) {
 
 func TestBadAddressToServer(t *testing.T) {
 	l := startServer(t)
-	req, err := buildCONNECTRequest("somebadaddressasdfdasfds.asdfasdf.dfads:532400")
+	req, err := buildCONNECTRequest("somebadaddressasdfdasfds.asdfasdf.dfads:532400", nil)
 	if err != nil {
 		t.Fatalf("Unable to build request: %s", err)
 	}

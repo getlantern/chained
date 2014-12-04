@@ -17,6 +17,11 @@ type Dialer struct {
 	// DialServer: function that dials the upstream server proxy
 	DialServer func() (net.Conn, error)
 
+	// OnRequest: optional function that gets called on every CONNECT request to
+	// the server and is allowed to modify the http.Request before it passes to
+	// the server.
+	OnRequest func(req *http.Request)
+
 	// Pipelined: if true, Dial() will return before receiving a response to the
 	// CONNECT request. If false, the dialer function will wait for and check
 	// the response to the CONNECT request before returning.
@@ -47,7 +52,7 @@ func (d *Dialer) sendCONNECT(network, addr string, conn net.Conn) error {
 		return fmt.Errorf("%s connections are not supported, only tcp is supported", network)
 	}
 
-	req, err := buildCONNECTRequest(addr)
+	req, err := buildCONNECTRequest(addr, d.OnRequest)
 	if err != nil {
 		return fmt.Errorf("Unable to construct CONNECT request: %s", err)
 	}
@@ -82,11 +87,14 @@ func checkCONNECTResponse(r *bufio.Reader, req *http.Request) error {
 	return nil
 }
 
-func buildCONNECTRequest(addr string) (*http.Request, error) {
+func buildCONNECTRequest(addr string, onRequest func(req *http.Request)) (*http.Request, error) {
 	req, err := http.NewRequest(CONNECT, addr, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Host = addr
+	if onRequest != nil {
+		onRequest(req)
+	}
 	return req, nil
 }
