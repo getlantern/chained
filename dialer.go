@@ -88,6 +88,5 @@ func buildCONNECTRequest(addr string) (*http.Request, error) {
 		return nil, err
 	}
 	req.Host = addr
-	req.Header.Set("X-LANTERN-AUTH-TOKEN", "YmYehDk8FJkRhj3qbuTMdahstB6YQTjHXAJeji0bVbFC14i3JnXUvDe4IjsJ0RFK")
 	return req, nil
 }
